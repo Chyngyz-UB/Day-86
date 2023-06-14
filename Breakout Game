@@ -1,0 +1,167 @@
+import pygame
+import random
+from pygame.locals import *
+
+# Initialize Pygame
+pygame.init()
+
+# Set up the game window
+WIDTH, HEIGHT = 800, 600
+window = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Breakout Game")
+
+# Set up game colors
+BLACK = (0, 0, 0)
+WHITE = (255, 255, 255)
+RED = (255, 0, 0)
+GREEN = (0, 255, 0)
+BLUE = (0, 0, 255)
+YELLOW = (255, 255, 0)
+ORANGE = (255, 165, 0)
+PURPLE = (128, 0, 128)
+
+# Set up the paddle dimensions and position
+paddle_width = 100
+paddle_height = 10
+paddle_x = (WIDTH - paddle_width) // 2
+paddle_y = HEIGHT - 50
+paddle_speed = 1
+
+# Set up the ball position, size, and speed
+ball_radius = 10
+ball_x = WIDTH // 2
+ball_y = HEIGHT // 2
+ball_dx = 0.2
+ball_dy = 0.2
+
+# Set up the brick dimensions and layout
+brick_width = 75
+brick_height = 30
+brick_rows = 5
+brick_cols = 10
+brick_spacing = 10
+brick_offset_x = 30
+brick_offset_y = 40
+
+# Set up game state variables
+game_over = False
+game_won = False
+
+# Set up the font for displaying text
+font = pygame.font.Font(None, 36)
+
+# Set up the brick colors
+brick_colors = [RED, GREEN, BLUE, YELLOW, ORANGE, PURPLE]
+
+# Create the bricks
+bricks = []
+for row in range(brick_rows):
+    for col in range(brick_cols):
+        brick_x = col * (brick_width + brick_spacing) + brick_offset_x
+        brick_y = row * (brick_height + brick_spacing) + brick_offset_y
+        brick_color = brick_colors[row % len(brick_colors)]  # Assign color based on row
+        bricks.append(pygame.Rect(brick_x, brick_y, brick_width, brick_height))
+        pygame.draw.rect(window, brick_color, bricks[-1])
+
+# Initialize the running variable
+running = True
+
+# Set up the score counter
+score = 0
+score_font = pygame.font.Font(None, 24)
+
+
+# Game loop
+while running:
+    # Handle events
+    for event in pygame.event.get():
+        if event.type == QUIT:
+            running = False
+
+    # Move the paddle
+    keys = pygame.key.get_pressed()
+    if keys[K_LEFT] and paddle_x > 0:
+        paddle_x -= paddle_speed
+    if keys[K_RIGHT] and paddle_x < WIDTH - paddle_width:
+        paddle_x += paddle_speed
+
+    # Move the ball
+    ball_x += ball_dx
+    ball_y += ball_dy
+
+    # Handle paddle-ball collision
+    if (
+        ball_x + ball_radius >= paddle_x
+        and ball_x - ball_radius <= paddle_x + paddle_width
+        and ball_y + ball_radius >= paddle_y
+    ):
+        ball_dy *= -1
+
+    # Handle ball-brick collision
+    for brick in bricks:
+        if (
+            ball_x + ball_radius >= brick.x
+            and ball_x - ball_radius <= brick.x + brick.width
+            and ball_y + ball_radius >= brick.y
+            and ball_y - ball_radius <= brick.y + brick.height
+        ):
+            bricks.remove(brick)
+            ball_dy *= -1
+            score += 1  # Increase score
+            break
+
+    # Handle wall collisions
+    if ball_x <= 0 or ball_x >= WIDTH - ball_radius:
+        ball_dx *= -1
+    if ball_y <= 0:
+        ball_dy *= -1
+
+    # Check for game over
+    if len(bricks) == 0:
+        game_won = True
+        running = False
+
+    if ball_y > HEIGHT:
+        game_over = True
+        running = False
+
+    # Clear the screen
+    window.fill(BLACK)
+
+    # Draw the paddle
+    pygame.draw.rect(window, WHITE, (paddle_x, paddle_y, paddle_width, paddle_height))
+
+    # Draw the ball
+    pygame.draw.circle(window, WHITE, (ball_x, ball_y), ball_radius)
+
+    # Draw the bricks
+    for brick in bricks:
+        pygame.draw.rect(window, brick_colors[bricks.index(brick) % len(brick_colors)], brick)
+
+    # Draw the score counter
+    score_text = score_font.render(f"Score: {score}", True, WHITE)
+    window.blit(score_text, (10, 10))
+
+    # Update the display
+    pygame.display.update()
+
+# Game over notification
+if game_over:
+    game_over_text = font.render("Game Over", True, WHITE)
+    text_rect = game_over_text.get_rect(center=(WIDTH // 2, HEIGHT // 2))
+    window.blit(game_over_text, text_rect)
+
+# You won notification
+if game_won:
+    game_won_text = font.render("You Won!", True, WHITE)
+    text_rect = game_won_text.get_rect(center=(WIDTH // 2, HEIGHT // 2))
+    window.blit(game_won_text, text_rect)
+
+# Update the display
+pygame.display.update()
+
+# Wait for a few seconds before quitting
+pygame.time.wait(3000)
+
+# Quit the game
+pygame.quit()
